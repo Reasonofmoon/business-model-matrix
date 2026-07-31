@@ -16,10 +16,13 @@ version: 1.0.0
 | porter | Porter 5 Forces | 산업 매력도와 협상력은? |
 | blue-ocean | Blue Ocean ERRC | 제거·감소·증가·창조할 요소는? |
 | jtbd | Jobs To Be Done | 학부모/학생이 고용하는 일은? |
+| competitor | 경쟁사 벤치마크 | 경쟁·대안 대비 위치와 이길 지점은? |
+| pdca | PDCA 사고법 | Plan-Do-Check-Act로 무엇을 돌릴까? |
 | ansoff | Ansoff Matrix | 성장 경로는? |
 | okr | OKR | 분기 목표와 핵심 결과는? |
 | unit-econ | Unit Economics | LTV/CAC/공헌이익은? |
 | vpc | Value Proposition Canvas | 고객 과업·고통·이득 정합은? |
+
 
 ## 출력 품질 기준
 - 각 프레임워크당 findings ≥ 3, actions ≥ 2

@@ -39,6 +39,7 @@
   };
 
   const INSIGHT_KEY = "english-academy-bmc-insights-v1";
+  const COMPETITOR_KEY = "english-academy-bmc-competitors-v1";
 
   const FRAMEWORKS = {
     swot: {
@@ -127,6 +128,47 @@
         gains: "이득",
         painRelievers: "고통 완화",
         gainCreators: "이득 창출",
+      },
+    },
+    competitor: {
+      id: "competitor",
+      title: "경쟁사 벤치마크",
+      question: "경쟁사·대안 대비 우리의 위치와 이길 수 있는 지점은?",
+      columns: [
+        "set",
+        "ourEdge",
+        "theirEdge",
+        "parity",
+        "gaps",
+        "priceValue",
+        "winThemes",
+        "watchMoves",
+      ],
+      labels: {
+        set: "비교 대상",
+        ourEdge: "우리 우위",
+        theirEdge: "상대 우위",
+        parity: "동등(Parity)",
+        gaps: "메울 갭",
+        priceValue: "가격·가치",
+        winThemes: "이길 메시지",
+        watchMoves: "모니터링 시그널",
+      },
+    },
+    pdca: {
+      id: "pdca",
+      title: "PDCA 사고법",
+      question: "계획-실행-점검-개선 루프로 무엇을 돌릴 것인가?",
+      columns: ["plan", "do", "check", "act", "cadence", "owners", "metrics", "backlog"],
+      labels: {
+        plan: "Plan 계획",
+        do: "Do 실행",
+        check: "Check 점검",
+        act: "Act 개선",
+        cadence: "주기·리듬",
+        owners: "오너·역할",
+        metrics: "점검 지표",
+        backlog: "다음 개선 백로그",
       },
     },
   };
@@ -247,6 +289,9 @@
     aiProgressText: document.getElementById("ai-progress-text"),
     // Insights
     fwGrid: document.getElementById("fw-grid"),
+    competitorNames: document.getElementById("competitor-names"),
+    competitorNotes: document.getElementById("competitor-notes"),
+    competitorBox: document.getElementById("competitor-box"),
     btnRunInsights: document.getElementById("btn-run-insights"),
     btnExportInsights: document.getElementById("btn-export-insights"),
     insightProgress: document.getElementById("insight-progress"),
@@ -744,6 +789,47 @@
     };
   }
 
+  function getCompetitorBrief() {
+    const namesRaw = (els.competitorNames?.value || "").trim();
+    const notes = (els.competitorNotes?.value || "").trim();
+    const names = namesRaw
+      ? namesRaw.split(/[,，、\n]/).map((s) => s.trim()).filter(Boolean).slice(0, 8)
+      : [];
+    return {
+      names: names.length ? names : ["인근 프랜차이즈 학원", "내신 전문 보습학원", "온라인 인강/앱", "1:1 과외"],
+      namesRaw: namesRaw,
+      notes: notes || "가격·커리큘럼·관리 강도·채널 영향력을 기준으로 비교",
+    };
+  }
+
+  function saveCompetitorBrief() {
+    try {
+      localStorage.setItem(
+        COMPETITOR_KEY,
+        JSON.stringify({
+          names: els.competitorNames?.value || "",
+          notes: els.competitorNotes?.value || "",
+        })
+      );
+    } catch (e) {}
+  }
+
+  function loadCompetitorBrief() {
+    try {
+      const raw = localStorage.getItem(COMPETITOR_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (els.competitorNames && typeof data.names === "string") els.competitorNames.value = data.names;
+      if (els.competitorNotes && typeof data.notes === "string") els.competitorNotes.value = data.notes;
+    } catch (e) {}
+  }
+
+  function syncCompetitorBoxVisibility() {
+    if (!els.competitorBox || !els.fwGrid) return;
+    const checked = [...els.fwGrid.querySelectorAll('input[type="checkbox"]:checked')].some((el) => el.value === "competitor");
+    els.competitorBox.style.display = checked ? "" : "none";
+  }
+
   function buildSystemPrompt() {
     return [
       "당신은 한국 영어학원 전문 경영 컨설턴트이자 Strategyzer 비즈니스 모델 캔버스 전문가입니다.",
@@ -1171,11 +1257,13 @@ ${schemaHint}
 
   function bmcSnapshot() {
     const { name, context } = getAcademyBrief();
+    const competitors = getCompetitorBrief();
     return {
       title: state.title,
       academyName: name,
       context,
       cards: state.cards,
+      competitors,
     };
   }
 
@@ -1327,6 +1415,142 @@ ${schemaHint}
         { text: "고통(Pain) 1개에 대응하는 관리 루틴을 주간 운영에 삽입", priority: "high", metric: "만족도/재등록", horizon: "30일", section: "ka" },
         { text: "이득(Gain) 증빙 사례 3건 수집해 상담 덱에 추가", priority: "mid", metric: "등록 전환", horizon: "30일", section: "vp" },
       ];
+    } else if (id === "competitor") {
+      const brief = getCompetitorBrief();
+      const rivals = brief.names;
+      const r0 = rivals[0] || "주요 경쟁사";
+      const r1 = rivals[1] || "대안 경쟁자";
+      out.columns = {
+        set: rivals.map((n, i) => `${i + 1}. ${n}`).concat([`메모: ${brief.notes}`]).slice(0, 6),
+        ourEdge: pick(vp.concat(cr).concat(kr), 4),
+        theirEdge: [
+          `${r0}: 브랜드·규모 또는 인지도 우위 가능`,
+          `${r1}: 특정 세그먼트(내신/회화) 특화 가능`,
+          "온라인 대안: 낮은 가격·시간 유연성",
+        ],
+        parity: [
+          "기본 교재·정규 수업 운영",
+          ch[0] ? `채널 존재감 (${ch[0]})` : "지역 오프라인 채널",
+          "학부모 상담 프로세스",
+        ],
+        gaps: [
+          "경쟁사 대비 성과 증빙(전후 성적) 패키지 부족 가능",
+          "가격 대비 가치 한 줄 메시지 미고정",
+          "채널별 전환 데이터 트래킹 공백",
+        ],
+        priceValue: [
+          rs[0] ? `우리 수익축: ${rs[0]}` : "assumption: 월 수강료 포지션 명시 필요",
+          "프리미엄(관리 강도) vs 가성비(온라인) 스펙트럼에서 위치 선택",
+          cost[0] ? `비용 제약: ${cost[0]}` : "원가 구조에 맞는 가격 밴드 설정",
+        ],
+        winThemes: pick(vp, 3)
+          .concat(["주간 리포트 기반 불안 제거 메시지", "세그먼트별 Before→After 사례"])
+          .slice(0, 4),
+        watchMoves: [
+          `${r0} 수강료·프로모션 변동`,
+          "맘카페·입소문 키워드 변화",
+          "신규 원어민/AI 학습 상품 출시",
+          "관리 시간·셔틀·부가 서비스 확대 여부",
+        ],
+      };
+      out.findings = [
+        `비교군 ${rivals.length}곳 기준, 우리 우위는 가치제안·관계 관리에서 먼저 입증`,
+        "Parity는 유지하고 Gap 1~2개만 집중 투자하는 것이 ROI에 유리",
+      ];
+      out.risks = [
+        `${r0}의 가격 인하·프로모션 시 전환율 방어 필요`,
+        "온라인 대안의 '편의성' 프레임에 말리면 관리 가치가 저평가됨",
+      ];
+      out.opportunities = [
+        "세그먼트 특화 메시지로 전면 경쟁 회피",
+        "성과 증빙 콘텐츠가 상담·채널 공통 자산이 됨",
+      ];
+      out.actions = [
+        {
+          text: `${r0} 포함 경쟁사 3곳 1페이지 벤치 시트(가격·커리큘럼·관리·채널) 작성`,
+          priority: "high",
+          metric: "벤치 시트 완성",
+          horizon: "14일",
+          section: "vp",
+        },
+        {
+          text: "우리 우위 1개를 상담 오프닝·광고 헤드라인에 동일 문구로 고정",
+          priority: "high",
+          metric: "상담→등록 전환율",
+          horizon: "30일",
+          section: "ch",
+        },
+        {
+          text: "상대 우위 항목 중 1개를 저비용으로 패리티 달성(또는 무시 결정 문서화)",
+          priority: "mid",
+          metric: "갭 클로즈 여부",
+          horizon: "60일",
+          section: "ka",
+        },
+        {
+          text: "월 1회 경쟁 시그널 리뷰(가격·후기·신규 상품) 캘린더 고정",
+          priority: "mid",
+          metric: "리뷰 실행률",
+          horizon: "90일",
+          section: "cr",
+        },
+      ];
+    } else if (id === "pdca") {
+      const brief = getAcademyBrief();
+      const topVp = vp[0] || "핵심 가치제안";
+      const topKa = ka[0] || "핵심 운영 활동";
+      const topCr = cr[0] || "학부모 소통";
+      const topCh = ch[0] || "주요 채널";
+      out.columns = {
+        plan: [
+          `목표: ${topVp} 전달력 강화 및 등록/재등록 개선`,
+          `가설: ${topCr}를 표준화하면 상담 전환이 오른다`,
+          cs[0] ? `타깃 세그먼트 고정: ${cs[0]}` : "타깃 세그먼트 1개로 실험 범위 한정",
+          "성공 기준·기간·오너를 한 장에 명시",
+        ],
+        do: [
+          `2~4주 실행: ${topKa}`,
+          topCh ? `채널 실험: ${topCh} 메시지/오퍼 1안` : "채널 1곳에서 오퍼 실험",
+          "상담 스크립트·주간 리포트 템플릿 실제 적용",
+          "변경 로그(언제·무엇을) 간단 기록",
+        ],
+        check: [
+          "선행지표: 문의 수, 상담 수, 등록 전환율",
+          "후행지표: 재등록률, 이탈 사유",
+          "학습 성과 가시화(리포트 오픈/반응)",
+          "가정(assumption) 대비 실제 갭 메모",
+        ],
+        act: [
+          "효과 큰 실행은 표준 프로세스로 고정",
+          "효과 없는 활동은 축소·중단",
+          "다음 사이클 가설 1개로 재정의",
+          "BMC 카드(VP/CR/CH/KA) 문구 갱신",
+        ],
+        cadence: ["주간: 지표 15분 리뷰 (Check)", "월간: 실험 회고 + Act 결정", "분기: 목표·세그먼트 재정렬 (Plan 재설정)"],
+        owners: ["원장: 목표·우선순위·중단 결정", "실장/상담: Do 실행·데이터 입력", "강사: 수업·관리 품질 Check 입력"],
+        metrics: [
+          "상담→등록 전환율",
+          "채널별 문의→상담 전환",
+          "재등록률 / 중도하차율",
+          rs[0] ? `수익 지표: ${rs[0]} 관련 객단가` : "학생 1인 공헌이익",
+        ],
+        backlog: ["다음 실험 후보 3개 백로그화", "실패 실험 학습 1줄 기록", "표준화된 Playbook 항목 +1"],
+      };
+      out.findings = [
+        "PDCA는 전략을 운영 리듬으로 바꾸는 장치 — Plan만 있고 Check가 없으면 개선이 쌓이지 않음",
+        `${brief.name} 맥락에서 1사이클 = 하나의 가설 + 하나의 지표가 이상적`,
+      ];
+      out.risks = ["동시에 너무 많은 실험을 돌려 Check가 형식화됨", "지표 없는 Do는 활동량만 늘리고 학습이 없음"];
+      out.opportunities = [
+        "주간 Check 루틴이 경쟁 대응 속도보다 빨라지면 운영 우위가 됨",
+        "Act 결과를 BMC 카드에 환원하면 조직 학습이 자산화됨",
+      ];
+      out.actions = [
+        { text: "이번 주 PDCA 1사이클 시트를 만들고 가설·지표·오너·기한 기입", priority: "high", metric: "PDCA 시트 작성률", horizon: "7일", section: "ka" },
+        { text: "주간 15분 Check 미팅 고정(전환율·문의·재등록 3지표)", priority: "high", metric: "주간 리뷰 실행률", horizon: "30일", section: "cr" },
+        { text: "실험 1건 Do 후 Act로 표준화 또는 폐기 결정 문서화", priority: "mid", metric: "실험 완결 수", horizon: "30일", section: "vp" },
+        { text: "월간 Act 결과를 채널 메시지/상담 스크립트에 반영", priority: "mid", metric: "메시지 갱신 주기", horizon: "60일", section: "ch" },
+      ];
     }
 
     out.actions.forEach((a) => {
@@ -1361,6 +1585,8 @@ ${schemaHint}
 학원: ${snap.academyName}
 컨텍스트: ${snap.context}
 BMC 제목: ${snap.title}
+경쟁사/대안: ${(snap.competitors?.names || []).join(", ")}
+경쟁 관찰 메모: ${snap.competitors?.notes || ""}
 BMC 카드 JSON:
 ${JSON.stringify(snap.cards, null, 2)}
 
@@ -1398,7 +1624,11 @@ ${JSON.stringify(specs, null, 2)}
 - 각 framework columns 키는 스펙의 columns를 사용
 - 각 framework actions 2~4개, 통합 actions 5개
 - section은 kp|ka|kr|vp|cr|ch|cs|cost|rs 중 하나
-- 가정은 문장 앞에 assumption: 표기`;
+- 가정은 문장 앞에 assumption: 표기
+- competitor 프레임워크가 포함되면 columns에 set/ourEdge/theirEdge/parity/gaps/priceValue/winThemes/watchMoves를 채우고, 실제 경쟁사 이름을 문장에 넣어라
+- 경쟁사 벤치마크 actions는 조사·메시지·패리티/차별화 실험으로 구체화
+- pdca 프레임워크가 포함되면 columns에 plan/do/check/act/cadence/owners/metrics/backlog를 채우고, 한 사이클=한 가설·한 지표 원칙을 지켜라
+- PDCA actions는 주간 Check 루틴, 실험 시트, 표준화/폐기 결정 등 운영 루프로 구체화`;
   }
 
   function normalizeInsightPayload(data, ids, mode) {
@@ -1540,6 +1770,7 @@ ${JSON.stringify(specs, null, 2)}
       render();
     }
 
+    saveCompetitorBrief();
     setInsightBusy(true, `${ids.length}개 프레임워크 분석 중…`);
     setStatus("프레임워크 인사이트 생성 중…");
 
@@ -1759,6 +1990,20 @@ ${JSON.stringify(specs, null, 2)}
     if (els.btnExportInsights) els.btnExportInsights.addEventListener("click", () => exportInsights());
     if (els.btnApplyActions) els.btnApplyActions.addEventListener("click", () => applyActionsToCanvas());
     if (els.btnClearInsights) els.btnClearInsights.addEventListener("click", () => clearInsights());
+    if (els.fwGrid) {
+      els.fwGrid.addEventListener("change", () => {
+        syncCompetitorBoxVisibility();
+      });
+    }
+    if (els.competitorNames) {
+      els.competitorNames.addEventListener("change", saveCompetitorBrief);
+      els.competitorNames.addEventListener("blur", saveCompetitorBrief);
+    }
+    if (els.competitorNotes) {
+      els.competitorNotes.addEventListener("change", saveCompetitorBrief);
+      els.competitorNotes.addEventListener("blur", saveCompetitorBrief);
+    }
+    syncCompetitorBoxVisibility();
   }
 
 

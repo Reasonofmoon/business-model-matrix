@@ -967,3 +967,40 @@ button, select, textarea, input {
     grid-row: auto;
   }
 }
+
+/* Competitor benchmark inputs */
+.competitor-box {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px dashed #7dd3fc;
+}
+.competitor-box label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0369a1;
+}
+.competitor-box input,
+.competitor-box textarea {
+  width: 100%;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f0f9ff;
+  font: inherit;
+  resize: vertical;
+}
+.competitor-box input:focus,
+.competitor-box textarea:focus {
+  outline: none;
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+  background: #fff;
+}
+.fw-grid {
+  grid-template-columns: 1fr 1fr;
+}
