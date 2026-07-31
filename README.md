@@ -42,10 +42,10 @@ business-model-matrix/
 
 | 프로바이더 | 기본 모델 예시 | 비고 |
 |-----------|----------------|------|
-| OpenAI | `gpt-4o-mini` | Chat Completions |
-| Anthropic | `claude-sonnet-4-20250514` | Messages API |
-| Google Gemini | `gemini-2.0-flash` | generateContent |
-| xAI (Grok) | `grok-2-latest` | OpenAI 호환 |
+| OpenAI | `gpt-5.6-luna` | Chat Completions |
+| Anthropic | `claude-sonnet-5` | Messages API |
+| Google Gemini | `gemini-3.6-flash` | generateContent |
+| xAI (Grok) | `grok-4.5` | OpenAI 호환 |
 | 커스텀 | 사용자 지정 | OpenAI 호환 Base URL |
 
 ### 보안·주의

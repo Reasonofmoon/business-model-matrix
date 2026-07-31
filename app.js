@@ -31,11 +31,11 @@
   };
 
   const DEFAULT_MODELS = {
-    openai: "gpt-4o-mini",
-    anthropic: "claude-sonnet-4-20250514",
-    gemini: "gemini-2.0-flash",
-    grok: "grok-2-latest",
-    custom: "gpt-4o-mini",
+    openai: "gpt-5.6-luna",
+    anthropic: "claude-sonnet-5",
+    gemini: "gemini-3.6-flash",
+    grok: "grok-4.5",
+    custom: "gpt-5.6-luna",
   };
 
   const SAMPLE = {
@@ -605,7 +605,7 @@
       return false;
     }
     if (!aiSettings.model) {
-      aiSettings.model = DEFAULT_MODELS[aiSettings.provider] || "gpt-4o-mini";
+      aiSettings.model = DEFAULT_MODELS[aiSettings.provider] || "gpt-5.6-luna";
       els.aiModel.value = aiSettings.model;
     }
     if (aiSettings.provider === "custom" && !aiSettings.baseUrl) {
@@ -831,7 +831,7 @@ ${schemaHint}
   }
 
   async function callGemini({ apiKey, model, system, user }) {
-    const m = model || "gemini-2.0-flash";
+    const m = model || "gemini-3.6-flash";
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
       m
     )}:generateContent?key=${encodeURIComponent(apiKey)}`;
@@ -864,7 +864,7 @@ ${schemaHint}
       return callOpenAICompatible({
         baseUrl: "https://api.openai.com/v1",
         apiKey,
-        model: model || "gpt-4o-mini",
+        model: model || "gpt-5.6-luna",
         system,
         user,
       });
@@ -873,7 +873,7 @@ ${schemaHint}
       return callOpenAICompatible({
         baseUrl: "https://api.x.ai/v1",
         apiKey,
-        model: model || "grok-2-latest",
+        model: model || "grok-4.5",
         system,
         user,
       });
@@ -882,7 +882,7 @@ ${schemaHint}
       return callOpenAICompatible({
         baseUrl: baseUrl || "https://api.openai.com/v1",
         apiKey,
-        model: model || "gpt-4o-mini",
+        model: model || "gpt-5.6-luna",
         system,
         user,
       });
@@ -890,7 +890,7 @@ ${schemaHint}
     if (provider === "anthropic") {
       return callAnthropic({
         apiKey,
-        model: model || "claude-sonnet-4-20250514",
+        model: model || "claude-sonnet-5",
         system,
         user,
       });
@@ -898,7 +898,7 @@ ${schemaHint}
     if (provider === "gemini") {
       return callGemini({
         apiKey,
-        model: model || "gemini-2.0-flash",
+        model: model || "gemini-3.6-flash",
         system,
         user,
       });
