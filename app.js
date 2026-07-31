@@ -38,6 +38,100 @@
     custom: "gpt-5.6-luna",
   };
 
+  const INSIGHT_KEY = "english-academy-bmc-insights-v1";
+
+  const FRAMEWORKS = {
+    swot: {
+      id: "swot",
+      title: "SWOT",
+      question: "강점·약점·기회·위협으로 학원의 전략 포지션은?",
+      columns: ["strengths", "weaknesses", "opportunities", "threats"],
+      labels: { strengths: "강점", weaknesses: "약점", opportunities: "기회", threats: "위협" },
+    },
+    porter: {
+      id: "porter",
+      title: "Porter 5 Forces",
+      question: "산업 경쟁 강도와 협상력은 어떤가?",
+      columns: ["rivalry", "newEntrants", "substitutes", "buyerPower", "supplierPower"],
+      labels: {
+        rivalry: "기존 경쟁",
+        newEntrants: "신규 진입",
+        substitutes: "대체재",
+        buyerPower: "구매자 교섭력",
+        supplierPower: "공급자 교섭력",
+      },
+    },
+    "blue-ocean": {
+      id: "blue-ocean",
+      title: "Blue Ocean (ERRC)",
+      question: "제거·감소·증가·창조로 새 가치 곡선은?",
+      columns: ["eliminate", "reduce", "raise", "create"],
+      labels: { eliminate: "제거", reduce: "감소", raise: "증가", create: "창조" },
+    },
+    jtbd: {
+      id: "jtbd",
+      title: "Jobs To Be Done",
+      question: "학부모/학생이 우리 학원을 '고용'하는 일은?",
+      columns: ["functional", "emotional", "social", "hireCriteria"],
+      labels: {
+        functional: "기능적 Job",
+        emotional: "감정적 Job",
+        social: "사회적 Job",
+        hireCriteria: "고용 기준",
+      },
+    },
+    ansoff: {
+      id: "ansoff",
+      title: "Ansoff Matrix",
+      question: "성장 경로(시장/상품)는 어디로 갈까?",
+      columns: ["marketPenetration", "marketDevelopment", "productDevelopment", "diversification"],
+      labels: {
+        marketPenetration: "시장 침투",
+        marketDevelopment: "시장 개발",
+        productDevelopment: "제품 개발",
+        diversification: "다각화",
+      },
+    },
+    okr: {
+      id: "okr",
+      title: "OKR",
+      question: "이번 분기 목표와 핵심 결과는?",
+      columns: ["objectives", "keyResults", "initiatives", "risks"],
+      labels: {
+        objectives: "목표(O)",
+        keyResults: "핵심결과(KR)",
+        initiatives: "이니셔티브",
+        risks: "리스크",
+      },
+    },
+    "unit-econ": {
+      id: "unit-econ",
+      title: "Unit Economics",
+      question: "LTV·CAC·공헌이익 관점의 수익성은?",
+      columns: ["revenueDrivers", "costDrivers", "metrics", "levers"],
+      labels: {
+        revenueDrivers: "수익 드라이버",
+        costDrivers: "비용 드라이버",
+        metrics: "핵심 지표",
+        levers: "개선 레버",
+      },
+    },
+    vpc: {
+      id: "vpc",
+      title: "Value Proposition Canvas",
+      question: "고객 과업·고통·이득과 가치제안의 정합은?",
+      columns: ["customerJobs", "pains", "gains", "painRelievers", "gainCreators"],
+      labels: {
+        customerJobs: "고객 과업",
+        pains: "고통",
+        gains: "이득",
+        painRelievers: "고통 완화",
+        gainCreators: "이득 창출",
+      },
+    },
+  };
+
+
   const SAMPLE = {
     title: "스마트잉글리시 학원 BMC",
     cards: {
@@ -111,6 +205,9 @@
   };
 
   let aiBusy = false;
+  let insightBusy = false;
+  /** @type {null | { generatedAt: string, mode: string, frameworks: any[], actions: any[], summary: any }} */
+  let insightState = null;
   let dragPayload = null;
   let statusTimer = null;
 
@@ -148,6 +245,20 @@
     btnAiClearKey: document.getElementById("btn-ai-clear-key"),
     aiProgress: document.getElementById("ai-progress"),
     aiProgressText: document.getElementById("ai-progress-text"),
+    // Insights
+    fwGrid: document.getElementById("fw-grid"),
+    btnRunInsights: document.getElementById("btn-run-insights"),
+    btnExportInsights: document.getElementById("btn-export-insights"),
+    insightProgress: document.getElementById("insight-progress"),
+    insightProgressText: document.getElementById("insight-progress-text"),
+    insightBoard: document.getElementById("insight-board"),
+    insightMeta: document.getElementById("insight-meta"),
+    insightSummary: document.getElementById("insight-summary"),
+    insightTabs: document.getElementById("insight-tabs"),
+    insightPanels: document.getElementById("insight-panels"),
+    insightRoadmap: document.getElementById("insight-roadmap"),
+    btnApplyActions: document.getElementById("btn-apply-actions"),
+    btnClearInsights: document.getElementById("btn-clear-insights"),
   };
 
   function emptyState() {
@@ -1024,6 +1135,633 @@ ${schemaHint}
     }
   }
 
+
+  /* ===================== Framework Insight Engine ===================== */
+
+  function selectedFrameworkIds() {
+    if (!els.fwGrid) return [];
+    return [...els.fwGrid.querySelectorAll('input[type="checkbox"]:checked')].map((el) => el.value);
+  }
+
+  function setInsightBusy(busy, text) {
+    insightBusy = busy;
+    if (els.btnRunInsights) els.btnRunInsights.disabled = busy;
+    if (els.insightProgress) els.insightProgress.classList.toggle("hidden", !busy);
+    if (text && els.insightProgressText) els.insightProgressText.textContent = text;
+  }
+
+  function saveInsights() {
+    try {
+      if (insightState) localStorage.setItem(INSIGHT_KEY, JSON.stringify(insightState));
+      else localStorage.removeItem(INSIGHT_KEY);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+
+  function loadInsights() {
+    try {
+      const raw = localStorage.getItem(INSIGHT_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function bmcSnapshot() {
+    const { name, context } = getAcademyBrief();
+    return {
+      title: state.title,
+      academyName: name,
+      context,
+      cards: state.cards,
+    };
+  }
+
+  function joinCards(section, fallback = "데이터 없음") {
+    const arr = state.cards[section] || [];
+    return arr.length ? arr.join(" · ") : fallback;
+  }
+
+  /** Local heuristic analysis when no API key / offline */
+  function heuristicFramework(id) {
+    const fw = FRAMEWORKS[id];
+    const vp = state.cards.vp || [];
+    const cs = state.cards.cs || [];
+    const ch = state.cards.ch || [];
+    const cr = state.cards.cr || [];
+    const cost = state.cards.cost || [];
+    const rs = state.cards.rs || [];
+    const kp = state.cards.kp || [];
+    const ka = state.cards.ka || [];
+    const kr = state.cards.kr || [];
+
+    const pick = (arr, n = 2) => (arr.length ? arr.slice(0, n) : ["assumption: 데이터 보강 필요"]);
+    const baseActions = [];
+
+    const out = {
+      id,
+      title: fw.title,
+      question: fw.question,
+      mode: "heuristic",
+      columns: {},
+      findings: [],
+      risks: [],
+      opportunities: [],
+      actions: [],
+    };
+
+    if (id === "swot") {
+      out.columns = {
+        strengths: pick(vp.concat(kr), 3),
+        weaknesses: [
+          cost.length ? `비용 압박: ${cost[0]}` : "assumption: 고정비 구조 점검 필요",
+          cs.length < 2 ? "고객 세그먼트 정의가 좁거나 불명확" : "세그먼트별 전환율 데이터 부재 가능",
+        ],
+        opportunities: pick(ch.concat(cs), 3),
+        threats: [
+          "인근 대형 프랜차이즈/온라인 대체재 경쟁",
+          "강사 이탈·시즌 수요 변동",
+        ],
+      };
+      out.findings = [
+        `가치제안 축: ${joinCards("vp")}`,
+        `핵심자원 축: ${joinCards("kr")}`,
+      ];
+      out.opportunities = out.columns.opportunities.slice();
+      out.risks = out.columns.threats.slice();
+      out.actions = [
+        { text: "상위 가치제안 1개를 상담 스크립트 첫 문장으로 고정", priority: "high", metric: "상담→등록 전환율", horizon: "30일", section: "cr" },
+        { text: "약점 영역 비용 1개에 대해 단위당 원가 시트 작성", priority: "mid", metric: "학생 1인 공헌이익", horizon: "30일", section: "cost" },
+        { text: "채널 1곳에 세그먼트별 메시지 A/B 테스트", priority: "mid", metric: "문의 수", horizon: "60일", section: "ch" },
+      ];
+    } else if (id === "porter") {
+      out.columns = {
+        rivalry: ["동일 상권 영어학원 가격·커리큘럼 경쟁 심화", "온라인 과외/앱 학습 대안 확산"],
+        newEntrants: ["소형 스튜디오형 학원 진입 장벽 보통", "브랜드·강사 확보가 진입 병목"],
+        substitutes: ["과외, 인강, AI 학습앱, 학교 방과후"],
+        buyerPower: ["학부모 정보 탐색력 높음 → 가격·성과 민감", "재등록 협상력 존재"],
+        supplierPower: [kp[0] ? `파트너 의존: ${kp[0]}` : "교재/강사 공급 협상력 중간"],
+      };
+      out.findings = ["구매자(학부모) 교섭력이 높아 성과 증빙이 핵심 방어 자산"];
+      out.risks = ["가격 경쟁 고착 시 마진 하락"];
+      out.opportunities = ["세그먼트 전문화로 경쟁 강도 회피"];
+      out.actions = [
+        { text: "경쟁 학원 3곳 대비 성과 증빙(리포트 샘플) 패키지화", priority: "high", metric: "상담 자료 사용률", horizon: "30일", section: "vp" },
+        { text: "대체재 대비 차별점 1줄을 랜딩/전단지 상단 고정", priority: "mid", metric: "문의 전환", horizon: "30일", section: "ch" },
+      ];
+    } else if (id === "blue-ocean") {
+      out.columns = {
+        eliminate: ["실속 없는 과도한 경품성 이벤트", "성과와 무관한 일방적 공지성 소통"],
+        reduce: ["저효율 전단지 살포 비중", "모든 학생 동일 숙제량"],
+        raise: pick(vp.concat(cr), 3),
+        create: ["주간 학습 데이터 대시보드", "학부모-학생 목표 공동 계약서", "졸업/진학 로드맵 클리닉"],
+      };
+      out.findings = ["증가(Raise)는 기존 가치제안 강화, 창조(Create)는 새 카테고리 실험"];
+      out.actions = [
+        { text: "ERRC 중 Create 1개를 4주 파일럿으로 설계", priority: "high", metric: "파일럿 참여 수", horizon: "30일", section: "ka" },
+        { text: "Reduce 대상 채널 예산을 고성과 채널로 재배분", priority: "mid", metric: "CAC", horizon: "60일", section: "ch" },
+      ];
+    } else if (id === "jtbd") {
+      out.columns = {
+        functional: cs.length ? cs.map((c) => `${c}의 성적/스킬 목표 달성`) : ["내신 등급 향상", "말하기 자신감"],
+        emotional: ["불안 감소(학부모)", "성취감·자신감(학생)"],
+        social: ["주변 학부모 인정", "학교/또래 내 유능감 신호"],
+        hireCriteria: pick(vp.concat(cr), 3),
+      };
+      out.findings = ["고용 기준이 가치제안·고객관계 카드와 일치하는지 점검 필요"];
+      out.actions = [
+        { text: "상담 시 JTBD 질문 3개 체크리스트 도입", priority: "high", metric: "니즈 파악 완성도", horizon: "14일", section: "cr" },
+        { text: "세그먼트별 Job 문구를 광고 헤드라인에 반영", priority: "mid", metric: "CTR/문의", horizon: "30일", section: "ch" },
+      ];
+    } else if (id === "ansoff") {
+      out.columns = {
+        marketPenetration: ["재원생 추천 이벤트", "형제 할인", "레벨 업셀"],
+        marketDevelopment: ["인접 학년 확장", "인근 단지 신규 상권"],
+        productDevelopment: pick(vp.concat(ka), 3),
+        diversification: ["학습 코칭 구독", "학부모 교육 워크숍", "B2B 방과후"],
+      };
+      out.findings = ["1순위는 침투(기존 고객 심화), 2순위 제품개발이 리스크 대비 효율적"];
+      out.actions = [
+        { text: "재원생 추천 프로그램 설계(보상·추적)", priority: "high", metric: "추천 등록 수", horizon: "30일", section: "rs" },
+        { text: "기존 세그먼트용 부가 상품 1개 MVP", priority: "mid", metric: "부가매출", horizon: "60일", section: "vp" },
+      ];
+    } else if (id === "okr") {
+      out.columns = {
+        objectives: ["등록 효율 개선", "학습 성과 가시화", "운영 마진 안정"],
+        keyResults: [
+          "상담→등록 전환율 +20%",
+          "주간 리포트 오픈율 60%+",
+          "학생 1인 공헌이익 +15%",
+        ],
+        initiatives: pick(ka.concat(cr), 3),
+        risks: ["시즌 비수기 등록 공백", "강사 일정 병목"],
+      };
+      out.actions = [
+        { text: "분기 OKR 보드를 주간 스탠드업에 연결", priority: "high", metric: "KR 진척률", horizon: "90일", section: "ka" },
+        { text: "KR별 오너(원장/실장/강사) 지정", priority: "mid", metric: "책임 명확성", horizon: "14일", section: "kr" },
+      ];
+    } else if (id === "unit-econ") {
+      out.columns = {
+        revenueDrivers: pick(rs, 3),
+        costDrivers: pick(cost, 3),
+        metrics: ["LTV(평균 수강개월×월수강료)", "CAC(채널별)", "재등록률", "공헌이익/학생"],
+        levers: ["평균 수강개월 연장", "저효율 채널 컷", "특강 패키지 부착", "정원 최적화"],
+      };
+      out.findings = ["수익 카드와 비용 카드를 학생 1인 단위로 환산해야 의사결정 속도가 오른다"];
+      out.actions = [
+        { text: "채널별 CAC 트래킹 시트 구축", priority: "high", metric: "CAC", horizon: "30일", section: "ch" },
+        { text: "재등록 방어 캠페인(만료 4주 전)", priority: "high", metric: "재등록률", horizon: "60일", section: "cr" },
+      ];
+    } else if (id === "vpc") {
+      out.columns = {
+        customerJobs: pick(cs, 3),
+        pains: ["성적 정체", "숙제 관리 부담", "정보 비대칭 불안"],
+        gains: ["등급 상승", "시간 절약", "투명한 피드백"],
+        painRelievers: pick(vp.concat(cr), 3),
+        gainCreators: pick(vp.concat(ka), 3),
+      };
+      out.findings = ["pain reliever가 실제 CR/KA 활동과 연결되어야 가치 전달이 완성된다"];
+      out.actions = [
+        { text: "고통(Pain) 1개에 대응하는 관리 루틴을 주간 운영에 삽입", priority: "high", metric: "만족도/재등록", horizon: "30일", section: "ka" },
+        { text: "이득(Gain) 증빙 사례 3건 수집해 상담 덱에 추가", priority: "mid", metric: "등록 전환", horizon: "30일", section: "vp" },
+      ];
+    }
+
+    out.actions.forEach((a) => {
+      a.framework = id;
+    });
+    return out;
+  }
+
+  function buildInsightSystemPrompt() {
+    return [
+      "당신은 한국 영어학원 전문 전략 컨설턴트다.",
+      "입력된 Business Model Canvas를 지정된 비즈니스 프레임워크로 분석한다.",
+      "추상론 금지. 원장이 바로 실험할 수 있는 구체적 인사이트/액션만 한국어로 작성.",
+      "반드시 유효한 JSON만 출력. 마크다운 코드블록 금지.",
+    ].join(" ");
+  }
+
+  function buildInsightUserPrompt(ids) {
+    const snap = bmcSnapshot();
+    const specs = ids.map((id) => {
+      const fw = FRAMEWORKS[id];
+      return {
+        id,
+        title: fw.title,
+        question: fw.question,
+        columns: fw.columns,
+        labels: fw.labels,
+      };
+    });
+    return `영어학원 BMC를 다음 프레임워크들로 분석하라.
+
+학원: ${snap.academyName}
+컨텍스트: ${snap.context}
+BMC 제목: ${snap.title}
+BMC 카드 JSON:
+${JSON.stringify(snap.cards, null, 2)}
+
+분석할 프레임워크:
+${JSON.stringify(specs, null, 2)}
+
+출력 JSON 스키마:
+{
+  "summary": {
+    "headline": "한 줄 진단",
+    "strategicPosition": "포지션 요약",
+    "biggestRisk": "최대 리스크",
+    "biggestOpportunity": "최대 기회"
+  },
+  "frameworks": [
+    {
+      "id": "swot",
+      "title": "SWOT",
+      "findings": ["..."],
+      "risks": ["..."],
+      "opportunities": ["..."],
+      "columns": { "strengths": ["..."], "weaknesses": ["..."] },
+      "actions": [
+        { "text": "...", "priority": "high|mid|low", "metric": "...", "horizon": "30일", "section": "vp" }
+      ]
+    }
+  ],
+  "actions": [
+    { "text": "통합 Top 액션", "priority": "high", "metric": "...", "horizon": "30일", "section": "cr", "framework": "swot" }
+  ]
+}
+
+규칙:
+- frameworks 배열은 요청 id를 모두 포함
+- 각 framework columns 키는 스펙의 columns를 사용
+- 각 framework actions 2~4개, 통합 actions 5개
+- section은 kp|ka|kr|vp|cr|ch|cs|cost|rs 중 하나
+- 가정은 문장 앞에 assumption: 표기`;
+  }
+
+  function normalizeInsightPayload(data, ids, mode) {
+    const frameworks = [];
+    const list = Array.isArray(data?.frameworks) ? data.frameworks : [];
+    ids.forEach((id) => {
+      const fw = FRAMEWORKS[id];
+      const found = list.find((x) => x && (x.id === id || x.title === fw.title)) || {};
+      const columns = {};
+      fw.columns.forEach((col) => {
+        const raw = (found.columns && found.columns[col]) || found[col] || [];
+        columns[col] = normalizeSectionItems(raw, 6);
+      });
+      const item = {
+        id,
+        title: fw.title,
+        question: fw.question,
+        mode,
+        columns,
+        findings: normalizeSectionItems(found.findings || [], 6),
+        risks: normalizeSectionItems(found.risks || [], 6),
+        opportunities: normalizeSectionItems(found.opportunities || [], 6),
+        actions: Array.isArray(found.actions)
+          ? found.actions.slice(0, 6).map((a) => normalizeAction(a, id))
+          : [],
+      };
+      if (!item.actions.length) {
+        // fallback fill from heuristic actions if AI omitted
+        item.actions = heuristicFramework(id).actions;
+      }
+      frameworks.push(item);
+    });
+
+    let actions = Array.isArray(data?.actions)
+      ? data.actions.slice(0, 8).map((a) => normalizeAction(a, a.framework || ids[0]))
+      : [];
+    if (!actions.length) {
+      actions = frameworks.flatMap((f) => f.actions).slice(0, 5);
+    }
+    // dedupe by text
+    const seen = new Set();
+    actions = actions.filter((a) => {
+      const k = a.text.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+
+    const summary = {
+      headline: String(data?.summary?.headline || frameworks[0]?.findings?.[0] || "BMC 기반 전략 진단 완료").slice(0, 120),
+      strategicPosition: String(data?.summary?.strategicPosition || joinCards("vp")).slice(0, 160),
+      biggestRisk: String(data?.summary?.biggestRisk || frameworks[0]?.risks?.[0] || "리스크 데이터 보완 필요").slice(0, 160),
+      biggestOpportunity: String(data?.summary?.biggestOpportunity || frameworks[0]?.opportunities?.[0] || "기회 데이터 보완 필요").slice(0, 160),
+    };
+
+    return {
+      generatedAt: new Date().toISOString(),
+      mode,
+      academy: getAcademyBrief(),
+      title: state.title,
+      frameworks,
+      actions,
+      summary,
+    };
+  }
+
+  function normalizeAction(a, frameworkId) {
+    if (typeof a === "string") {
+      return {
+        text: a.trim().slice(0, 120),
+        priority: "mid",
+        metric: "정의 필요",
+        horizon: "30일",
+        section: "vp",
+        framework: frameworkId,
+      };
+    }
+    const section = SECTIONS.includes(a?.section) ? a.section : "vp";
+    const pr = String(a?.priority || "mid").toLowerCase();
+    return {
+      text: String(a?.text || a?.action || "").trim().slice(0, 120) || "액션 보완 필요",
+      priority: pr === "high" || pr === "low" ? pr : "mid",
+      metric: String(a?.metric || "정의 필요").slice(0, 60),
+      horizon: String(a?.horizon || "30일").slice(0, 20),
+      section,
+      framework: a?.framework || frameworkId,
+    };
+  }
+
+  async function analyzeWithAI(ids) {
+    const raw = await callLLM(buildInsightSystemPrompt(), buildInsightUserPrompt(ids));
+    const data = extractJson(raw);
+    return normalizeInsightPayload(data, ids, "ai");
+  }
+
+  function analyzeWithHeuristic(ids) {
+    const frameworks = ids.map((id) => heuristicFramework(id));
+    const actions = [];
+    const seen = new Set();
+    frameworks.forEach((f) => {
+      (f.actions || []).forEach((a) => {
+        const k = a.text.toLowerCase();
+        if (seen.has(k)) return;
+        seen.add(k);
+        actions.push(a);
+      });
+    });
+    return normalizeInsightPayload(
+      {
+        summary: {
+          headline: "로컬 휴리스틱 기반 1차 전략 진단",
+          strategicPosition: `가치제안 중심: ${joinCards("vp")}`,
+          biggestRisk: actions[0] ? "실행 우선순위 분산 위험" : "데이터 공백",
+          biggestOpportunity: joinCards("ch", "채널 실험 여지"),
+        },
+        frameworks,
+        actions: actions.slice(0, 5),
+      },
+      ids,
+      "heuristic"
+    );
+  }
+
+  async function runInsights() {
+    if (insightBusy) return;
+    const ids = selectedFrameworkIds().filter((id) => FRAMEWORKS[id]);
+    if (!ids.length) {
+      alert("분석할 프레임워크를 하나 이상 선택하세요.");
+      return;
+    }
+    if (!hasAnyCards()) {
+      if (!confirm("캔버스가 비어 있습니다. 샘플 데이터로 채운 뒤 분석할까요?")) return;
+      // load sample without confirm loop
+      state = {
+        title: SAMPLE.title,
+        cards: Object.fromEntries(SECTIONS.map((s) => [s, [...(SAMPLE.cards[s] || [])]])),
+      };
+      save();
+      render();
+    }
+
+    setInsightBusy(true, `${ids.length}개 프레임워크 분석 중…`);
+    setStatus("프레임워크 인사이트 생성 중…");
+
+    try {
+      let result;
+      // Prefer AI if key present; else heuristic
+      readAiSettingsFromUI();
+      if (aiSettings.apiKey) {
+        try {
+          result = await analyzeWithAI(ids);
+        } catch (err) {
+          console.warn("AI insight failed, fallback heuristic", err);
+          result = analyzeWithHeuristic(ids);
+          result.mode = "heuristic-fallback";
+          result.summary.headline = `AI 실패로 로컬 진단 전환 · ${result.summary.headline}`;
+        }
+      } else {
+        result = analyzeWithHeuristic(ids);
+      }
+      insightState = result;
+      saveInsights();
+      renderInsights();
+      setStatus(`인사이트 완료 · ${result.mode} · ${result.frameworks.length}개 프레임워크`);
+    } catch (err) {
+      console.error(err);
+      alert(`인사이트 분석 실패\n\n${err?.message || err}`);
+      setStatus("인사이트 실패", "error");
+    } finally {
+      setInsightBusy(false);
+    }
+  }
+
+  function renderInsights() {
+    if (!els.insightBoard) return;
+    if (!insightState) {
+      els.insightBoard.hidden = true;
+      return;
+    }
+    els.insightBoard.hidden = false;
+    const s = insightState.summary || {};
+    const when = new Date(insightState.generatedAt).toLocaleString("ko-KR");
+    els.insightMeta.textContent = `${when} · 모드: ${insightState.mode} · ${insightState.frameworks.length}개 프레임워크`;
+
+    els.insightSummary.innerHTML = [
+      ["한 줄 진단", s.headline],
+      ["전략 포지션", s.strategicPosition],
+      ["최대 리스크", s.biggestRisk],
+      ["최대 기회", s.biggestOpportunity],
+    ]
+      .map(
+        ([label, value]) =>
+          `<div class="summary-card"><div class="label">${escapeHtml(label)}</div><div class="value">${escapeHtml(
+            value || "-"
+          )}</div></div>`
+      )
+      .join("");
+
+    // tabs + panels
+    els.insightTabs.innerHTML = "";
+    els.insightPanels.innerHTML = "";
+    insightState.frameworks.forEach((fw, idx) => {
+      const tab = document.createElement("button");
+      tab.type = "button";
+      tab.className = "insight-tab" + (idx === 0 ? " active" : "");
+      tab.textContent = fw.title;
+      tab.dataset.target = fw.id;
+      tab.addEventListener("click", () => {
+        els.insightTabs.querySelectorAll(".insight-tab").forEach((t) => t.classList.remove("active"));
+        els.insightPanels.querySelectorAll(".insight-panel").forEach((p) => p.classList.remove("active"));
+        tab.classList.add("active");
+        const panel = els.insightPanels.querySelector(`[data-panel="${fw.id}"]`);
+        if (panel) panel.classList.add("active");
+      });
+      els.insightTabs.appendChild(tab);
+
+      const panel = document.createElement("div");
+      panel.className = "insight-panel" + (idx === 0 ? " active" : "");
+      panel.dataset.panel = fw.id;
+      const cols = FRAMEWORKS[fw.id]?.columns || Object.keys(fw.columns || {});
+      const labels = FRAMEWORKS[fw.id]?.labels || {};
+      const colHtml = cols
+        .map((c) => {
+          const items = fw.columns?.[c] || [];
+          return `<div class="insight-col"><h4>${escapeHtml(labels[c] || c)}</h4><ul>${
+            items.length
+              ? items.map((i) => `<li>${escapeHtml(i)}</li>`).join("")
+              : "<li class='muted'>항목 없음</li>"
+          }</ul></div>`;
+        })
+        .join("");
+      const actHtml = (fw.actions || [])
+        .map((a) => `<li><strong>[${escapeHtml(a.priority)}]</strong> ${escapeHtml(a.text)} <span class="muted">· ${escapeHtml(a.metric)} · ${escapeHtml(a.horizon)}</span></li>`)
+        .join("");
+      panel.innerHTML = `
+        <h3>${escapeHtml(fw.title)}</h3>
+        <p class="fw-question">${escapeHtml(fw.question || "")}</p>
+        <div class="insight-cols">${colHtml}</div>
+        <div class="insight-col" style="margin-top:10px">
+          <h4>프레임워크 액션</h4>
+          <ul>${actHtml || "<li>없음</li>"}</ul>
+        </div>`;
+      els.insightPanels.appendChild(panel);
+    });
+
+    // roadmap table
+    const rows = (insightState.actions || [])
+      .map((a, i) => {
+        const badge = `<span class="badge-priority ${escapeHtml(a.priority)}">${escapeHtml(a.priority)}</span>`;
+        return `<tr>
+          <td>${i + 1}</td>
+          <td>${badge}</td>
+          <td>${escapeHtml(a.text)}</td>
+          <td>${escapeHtml(a.metric)}</td>
+          <td>${escapeHtml(a.horizon)}</td>
+          <td>${escapeHtml((SECTION_LABELS[a.section] || a.section) + "")}</td>
+          <td>${escapeHtml(a.framework || "")}</td>
+        </tr>`;
+      })
+      .join("");
+    els.insightRoadmap.innerHTML = `
+      <h3>Top 실행 로드맵</h3>
+      <table class="action-table">
+        <thead><tr><th>#</th><th>우선</th><th>액션</th><th>지표</th><th>기간</th><th>BMC 영역</th><th>출처</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="7">액션 없음</td></tr>'}</tbody>
+      </table>`;
+  }
+
+  function exportInsights() {
+    if (!insightState) {
+      alert("먼저 프레임워크 분석을 실행하세요.");
+      return;
+    }
+    const stamp = new Date().toISOString().slice(0, 10);
+    // JSON
+    const jsonBlob = new Blob([JSON.stringify(insightState, null, 2)], { type: "application/json" });
+    const a1 = document.createElement("a");
+    a1.href = URL.createObjectURL(jsonBlob);
+    a1.download = `bmc-insights-${stamp}.json`;
+    a1.click();
+    URL.revokeObjectURL(a1.href);
+
+    // Markdown briefing
+    const md = insightsToMarkdown(insightState);
+    const mdBlob = new Blob([md], { type: "text/markdown" });
+    const a2 = document.createElement("a");
+    a2.href = URL.createObjectURL(mdBlob);
+    a2.download = `bmc-insights-${stamp}.md`;
+    a2.click();
+    URL.revokeObjectURL(a2.href);
+    setStatus("인사이트 JSON/MD 내보내기 완료");
+  }
+
+  function insightsToMarkdown(data) {
+    const lines = [];
+    lines.push(`# ${data.title || "BMC"} 전략 인사이트 브리핑`);
+    lines.push("");
+    lines.push(`- 생성: ${data.generatedAt}`);
+    lines.push(`- 모드: ${data.mode}`);
+    lines.push(`- 학원: ${data.academy?.name || ""}`);
+    lines.push("");
+    lines.push("## Executive Summary");
+    lines.push(`- 진단: ${data.summary?.headline || ""}`);
+    lines.push(`- 포지션: ${data.summary?.strategicPosition || ""}`);
+    lines.push(`- 리스크: ${data.summary?.biggestRisk || ""}`);
+    lines.push(`- 기회: ${data.summary?.biggestOpportunity || ""}`);
+    lines.push("");
+    (data.frameworks || []).forEach((fw) => {
+      lines.push(`## ${fw.title}`);
+      lines.push(`> ${fw.question || ""}`);
+      lines.push("");
+      const labels = FRAMEWORKS[fw.id]?.labels || {};
+      Object.keys(fw.columns || {}).forEach((c) => {
+        lines.push(`### ${labels[c] || c}`);
+        (fw.columns[c] || []).forEach((i) => lines.push(`- ${i}`));
+        lines.push("");
+      });
+    });
+    lines.push("## Top Actions");
+    (data.actions || []).forEach((a, i) => {
+      lines.push(`${i + 1}. **[${a.priority}]** ${a.text} (${a.metric}, ${a.horizon}, ${a.section})`);
+    });
+    lines.push("");
+    return lines.join("\n");
+  }
+
+  function applyActionsToCanvas() {
+    if (!insightState?.actions?.length) {
+      alert("적용할 액션이 없습니다.");
+      return;
+    }
+    let n = 0;
+    insightState.actions.slice(0, 5).forEach((a) => {
+      const section = SECTIONS.includes(a.section) ? a.section : "vp";
+      const text = `▶ ${a.text}`.slice(0, 80);
+      if (!state.cards[section]) state.cards[section] = [];
+      if (state.cards[section].some((t) => t === text)) return;
+      if (state.cards[section].length >= 50) return;
+      state.cards[section].push(text);
+      n++;
+    });
+    save();
+    render();
+    setStatus(`액션 ${n}개를 캔버스 카드로 추가했습니다`);
+  }
+
+  function clearInsights() {
+    if (!insightState) return;
+    if (!confirm("인사이트 결과를 삭제할까요?")) return;
+    insightState = null;
+    saveInsights();
+    renderInsights();
+    setStatus("인사이트 결과를 삭제했습니다");
+  }
+
+  function bindInsightEvents() {
+    if (els.btnRunInsights) els.btnRunInsights.addEventListener("click", () => runInsights());
+    if (els.btnExportInsights) els.btnExportInsights.addEventListener("click", () => exportInsights());
+    if (els.btnApplyActions) els.btnApplyActions.addEventListener("click", () => applyActionsToCanvas());
+    if (els.btnClearInsights) els.btnClearInsights.addEventListener("click", () => clearInsights());
+  }
+
+
   function bindAiEvents() {
     els.btnAiToggle.addEventListener("click", () => {
       els.aiSettings.classList.toggle("hidden");
@@ -1101,6 +1839,7 @@ ${schemaHint}
 
     setupDropzones();
     bindAiEvents();
+    bindInsightEvents();
   }
 
   function updateCharCount() {
@@ -1116,6 +1855,8 @@ ${schemaHint}
     render();
     updateCharCount();
     const keyHint = aiSettings.apiKey ? "API 키 준비됨" : "API 키 설정 필요";
+    insightState = loadInsights();
+    if (insightState) renderInsights();
     setStatus(restored ? `이전 내용 복원 · ${keyHint}` : `새 캔버스 · ${keyHint}`);
   }
 

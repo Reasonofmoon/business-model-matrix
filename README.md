@@ -1,83 +1,65 @@
-# 영어학원 비즈니스 모델 캔버스 (BMC)
+# 영어학원 비즈니스 인사이트 랩
 
-Strategyzer Business Model Canvas 구조를 기반으로, 영어학원 원장·창업 준비자가 9개 영역을 시각적으로 작성하는 웹 앱입니다.  
-**BYOK(Bring Your Own Key)** 로 본인 API 키를 연결하면 AI가 각 영역을 최적 아이디어로 자동 채웁니다.
+Strategyzer **Business Model Canvas** + **8대 비즈니스 프레임워크** 교차 분석 웹앱입니다.  
+영어학원 원장·창업 준비자가 BMC를 작성하고, SWOT·Porter·Blue Ocean·JTBD 등으로 실행 인사이트를 얻습니다.
 
 ## 라이브 데모
 
-GitHub Pages 배포 후: https://reasonofmoon.github.io/business-model-matrix/
+https://reasonofmoon.github.io/business-model-matrix/
 
-## 구성
-
-```
-business-model-matrix/
-├── index.html   # 레이아웃·AI 패널·9분할 캔버스
-├── style.css    # Strategyzer형 CSS Grid + 반응형
-├── app.js       # 카드 CRUD, DnD, LocalStorage, JSON/PNG, BYOK AI
-└── README.md
-```
-
-## 기능
+## 핵심 기능
 
 | 기능 | 설명 |
 |------|------|
-| **AI 자동 채우기 (BYOK)** | 학원 정보 기반 9영역/선택 영역 아이디어 생성 |
-| 카드 추가 | 9개 영역 선택 후 텍스트 카드 생성 |
-| 수정/삭제 | 더블클릭·✎ 수정, × 삭제 |
-| 드래그 앤 드롭 | 카드를 다른 영역으로 이동 |
-| 자동 저장 | `localStorage` 즉시 저장·복원 |
-| JSON 내보내기/가져오기 | 백업 및 공유 |
-| PNG 저장 | html2canvas로 캔버스만 고해상도 캡처 |
-| 샘플 데이터 | AI 없이 영어학원 예시 채우기 |
+| BMC 9분할 캔버스 | Strategyzer형 표 그리드, 드래그앤드롭 카드 |
+| BYOK AI 자동 채우기 | OpenAI / Anthropic / Gemini / Grok / 커스텀 |
+| **프레임워크 인사이트** | SWOT, Porter 5, Blue Ocean ERRC, JTBD, Ansoff, OKR, Unit Economics, VPC |
+| 로컬 폴백 진단 | API 키 없이도 휴리스틱 1차 분석 |
+| Top 실행 로드맵 | 우선순위·지표·기간·BMC 영역 매핑 |
+| 액션 → 카드 | Top 액션을 캔버스 카드로 환원 |
+| JSON/MD/PNG | 인사이트·캔버스 내보내기 |
 
-## AI 자동 채우기 사용법
+## 8대 프레임워크
 
-1. 좌측 **AI 자동 채우기** → **설정**
-2. 프로바이더·모델·API 키 입력 → **설정 저장**
-3. 학원명/컨셉, 위치·타깃·강점 등 학원 정보 작성
-4. **전체 9영역 AI 채우기** 또는 아래 영역 선택 후 **선택 영역만 채우기**
-5. 채우기 방식: **덮어쓰기** / **기존에 추가**, 영역당 3~6개 선택
+1. **SWOT** — 강점·약점·기회·위협  
+2. **Porter 5 Forces** — 산업 경쟁 구조  
+3. **Blue Ocean ERRC** — 제거·감소·증가·창조  
+4. **JTBD** — 고객이 학원을 고용하는 일  
+5. **Ansoff** — 성장 경로  
+6. **OKR** — 분기 목표/핵심결과  
+7. **Unit Economics** — LTV·CAC·공헌이익  
+8. **Value Proposition Canvas** — 과업·고통·이득 정합  
 
-### 지원 프로바이더
+## 사용 흐름
 
-| 프로바이더 | 기본 모델 예시 | 비고 |
-|-----------|----------------|------|
-| OpenAI | `gpt-5.6-luna` | Chat Completions |
-| Anthropic | `claude-sonnet-5` | Messages API |
-| Google Gemini | `gemini-3.6-flash` | generateContent |
-| xAI (Grok) | `grok-4.5` | OpenAI 호환 |
-| 커스텀 | 사용자 지정 | OpenAI 호환 Base URL |
+1. 학원 정보 입력 또는 샘플 데이터 로드  
+2. (선택) BYOK로 BMC 9영역 AI 채우기  
+3. 프레임워크 선택 후 **선택 프레임워크 분석**  
+4. 하단 **전략 인사이트 보드**에서 탭·로드맵 확인  
+5. **Top 액션 → 카드 후보**로 캔버스에 환원, JSON/MD 내보내기  
 
-### 보안·주의
+## 하네스 (개발/확장)
 
-- API 키는 **브라우저 localStorage에만** 저장되며 앱 서버로 전송되지 않습니다.
-- 공용 기기에서는 사용 후 **키 삭제**를 권장합니다.
-- 일부 프로바이더는 브라우저 **CORS** 제한이 있을 수 있습니다. 막히면 OpenAI 호환 프록시 Base URL(커스텀)을 사용하세요.
-- Gemini는 URL 쿼리 키 방식이라 브라우저에서 비교적 잘 동작하는 편입니다.
+```
+.claude/
+  agents/   canvas-curator, framework-analyst, insight-synthesizer
+  skills/   bmc-orchestrator, framework-insight, canvas-ops
+CLAUDE.md   하네스 포인터
+```
 
-## 9개 영역 (영어학원 맞춤)
-
-1. **KP** 핵심 파트너  
-2. **KA** 핵심 활동  
-3. **KR** 핵심 자원  
-4. **VP** 가치 제안  
-5. **CR** 고객 관계  
-6. **CH** 채널  
-7. **CS** 고객 세그먼트  
-8. **CS** 비용 구조  
-9. **RS** 수익 흐름  
+관련 작업 요청 시 `bmc-orchestrator` 스킬을 사용합니다.
 
 ## 기술 스택
 
-- HTML5 / CSS3 Grid / Vanilla JS (ES6+)
-- Local Storage (캔버스 + AI 설정)
-- html2canvas (PNG export)
-- BYOK: OpenAI / Anthropic / Gemini / xAI / OpenAI-compatible
+- HTML5 / CSS Grid / Vanilla JS
+- localStorage (캔버스 + AI 설정 + 인사이트)
+- html2canvas
+- BYOK LLM APIs
 
 ## 로컬 실행
-
-정적 파일이므로 `index.html`을 브라우저에서 열거나 간단 서버로 실행합니다.
 
 ```bash
 python3 -m http.server 8080
 ```
+
+브라우저에서 `index.html`을 엽니다.

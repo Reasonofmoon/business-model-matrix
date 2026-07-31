@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>영어학원 비즈니스 모델 캔버스</title>
+  <title>영어학원 비즈니스 인사이트 랩</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
   <script src="app.js" defer></script>
@@ -14,8 +14,8 @@
       <div class="brand">
         <div class="brand-mark">BMC</div>
         <div>
-          <h1>영어학원 비즈니스 모델 캔버스</h1>
-          <p>Strategyzer 구조 기반 · 원장/창업 준비자용</p>
+          <h1>영어학원 비즈니스 인사이트 랩</h1>
+          <p>BMC + 8대 프레임워크 전략 진단 · 원장/창업 준비자용</p>
         </div>
       </div>
       <div class="header-actions">
@@ -166,6 +166,34 @@
           </form>
         </section>
 
+
+        <section class="panel-block insight-block">
+          <div class="block-head">
+            <h2>📊 프레임워크 인사이트</h2>
+          </div>
+          <p class="muted">BMC를 SWOT·Porter·Blue Ocean·JTBD 등 8개 프레임워크로 교차 분석합니다. API 키가 있으면 AI, 없으면 로컬 휴리스틱으로 진단합니다.</p>
+
+          <div class="fw-grid" id="fw-grid">
+            <label class="fw-chip"><input type="checkbox" value="swot" checked> SWOT</label>
+            <label class="fw-chip"><input type="checkbox" value="porter" checked> Porter 5</label>
+            <label class="fw-chip"><input type="checkbox" value="blue-ocean" checked> Blue Ocean</label>
+            <label class="fw-chip"><input type="checkbox" value="jtbd" checked> JTBD</label>
+            <label class="fw-chip"><input type="checkbox" value="ansoff"> Ansoff</label>
+            <label class="fw-chip"><input type="checkbox" value="okr"> OKR</label>
+            <label class="fw-chip"><input type="checkbox" value="unit-econ"> Unit Econ</label>
+            <label class="fw-chip"><input type="checkbox" value="vpc"> VPC</label>
+          </div>
+
+          <div class="ai-actions" style="margin-top:8px">
+            <button type="button" class="btn btn-insight btn-block" id="btn-run-insights">선택 프레임워크 분석</button>
+            <button type="button" class="btn btn-ghost btn-block" id="btn-export-insights">인사이트 JSON/MD</button>
+          </div>
+          <div class="ai-progress hidden" id="insight-progress" aria-live="polite">
+            <div class="ai-spinner"></div>
+            <span id="insight-progress-text">프레임워크 분석 중…</span>
+          </div>
+        </section>
+
         <section class="panel-block">
           <h2>빠른 예시 채우기</h2>
           <p class="muted">AI 없이 영어학원 샘플로 미리 봅니다.</p>
@@ -274,6 +302,23 @@
           </footer>
         </div>
       </main>
+
+      <section class="insight-board" id="insight-board" hidden>
+        <div class="insight-board-head">
+          <div>
+            <h2>전략 인사이트 보드</h2>
+            <p class="muted" id="insight-meta">아직 분석 결과가 없습니다. 좌측에서 프레임워크를 선택해 분석하세요.</p>
+          </div>
+          <div class="insight-board-actions">
+            <button type="button" class="btn btn-tiny" id="btn-apply-actions">Top 액션 → 카드 후보</button>
+            <button type="button" class="btn btn-tiny" id="btn-clear-insights">결과 지우기</button>
+          </div>
+        </div>
+        <div class="insight-summary" id="insight-summary"></div>
+        <div class="insight-tabs" id="insight-tabs"></div>
+        <div class="insight-panels" id="insight-panels"></div>
+        <div class="insight-roadmap" id="insight-roadmap"></div>
+      </section>
     </div>
   </div>
 </body>
