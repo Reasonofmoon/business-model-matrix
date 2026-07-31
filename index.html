@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>영어학원 비즈니스 모델 캔버스</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <div class="brand-mark">BMC</div>
+        <div>
+          <h1>영어학원 비즈니스 모델 캔버스</h1>
+          <p>Strategyzer 구조 기반 · 원장/창업 준비자용</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-ghost" id="btn-clear" title="전체 초기화">초기화</button>
+        <button type="button" class="btn btn-ghost" id="btn-import" title="JSON 가져오기">가져오기</button>
+        <button type="button" class="btn btn-ghost" id="btn-export-json" title="JSON 내보내기">JSON</button>
+        <button type="button" class="btn btn-primary" id="btn-export-png" title="PNG 이미지 저장">PNG 저장</button>
+        <input type="file" id="import-file" accept="application/json,.json" hidden />
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="panel">
+        <section class="panel-block ai-block">
+          <div class="block-head">
+            <h2>✨ AI 자동 채우기 <span class="badge">BYOK</span></h2>
+            <button type="button" class="btn btn-tiny" id="btn-ai-toggle-settings" title="API 설정">설정</button>
+          </div>
+          <p class="muted">학원 정보를 적으면 AI가 9개 영역 아이디어를 제안합니다. API 키는 이 기기에만 저장됩니다.</p>
+
+          <div class="form ai-form">
+            <label for="ai-academy-name">학원명 / 컨셉</label>
+            <input id="ai-academy-name" type="text" maxlength="80" placeholder="예: 강남 초중등 내신·스피킹 전문" />
+
+            <label for="ai-context">학원 정보 (위치·타깃·강점 등)</label>
+            <textarea
+              id="ai-context"
+              rows="3"
+              maxlength="600"
+              placeholder="예: 분당 아파트 단지, 초3~중3, 맞벌이 학부모, 1:1 오답관리 강점, 원어민 주 2회"
+            ></textarea>
+
+            <div class="ai-row">
+              <div>
+                <label for="ai-count">영역당 카드</label>
+                <select id="ai-count">
+                  <option value="3">3개</option>
+                  <option value="4" selected>4개</option>
+                  <option value="5">5개</option>
+                  <option value="6">6개</option>
+                </select>
+              </div>
+              <div>
+                <label for="ai-mode">채우기 방식</label>
+                <select id="ai-mode">
+                  <option value="replace" selected>덮어쓰기</option>
+                  <option value="append">기존에 추가</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="ai-actions">
+              <button type="button" class="btn btn-ai btn-block" id="btn-ai-fill-all">전체 9영역 AI 채우기</button>
+              <button type="button" class="btn btn-ai-outline btn-block" id="btn-ai-fill-section">선택 영역만 채우기</button>
+            </div>
+            <div class="ai-progress hidden" id="ai-progress" aria-live="polite">
+              <div class="ai-spinner"></div>
+              <span id="ai-progress-text">아이디어 생성 중…</span>
+            </div>
+          </div>
+
+          <div class="ai-settings hidden" id="ai-settings">
+            <h3>API 설정 (Bring Your Own Key)</h3>
+            <div class="form">
+              <label for="ai-provider">프로바이더</label>
+              <select id="ai-provider">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="grok">xAI (Grok)</option>
+                <option value="custom">OpenAI 호환 커스텀</option>
+              </select>
+
+              <label for="ai-model">모델</label>
+              <input id="ai-model" type="text" list="ai-model-list" placeholder="gpt-4o-mini" autocomplete="off" />
+              <datalist id="ai-model-list">
+                <option value="gpt-4o-mini"></option>
+                <option value="gpt-4o"></option>
+                <option value="gpt-4.1-mini"></option>
+                <option value="claude-sonnet-4-20250514"></option>
+                <option value="claude-3-5-haiku-latest"></option>
+                <option value="gemini-2.0-flash"></option>
+                <option value="gemini-2.5-flash"></option>
+                <option value="grok-2-latest"></option>
+                <option value="grok-3-mini"></option>
+              </datalist>
+
+              <label for="ai-api-key">API 키</label>
+              <div class="key-row">
+                <input id="ai-api-key" type="password" placeholder="sk-... / AIza... " autocomplete="off" spellcheck="false" />
+                <button type="button" class="btn btn-tiny" id="btn-toggle-key" title="표시/숨김">보기</button>
+              </div>
+
+              <div id="custom-base-wrap" class="hidden">
+                <label for="ai-base-url">Base URL</label>
+                <input id="ai-base-url" type="url" placeholder="https://api.example.com/v1" />
+              </div>
+
+              <div class="ai-settings-actions">
+                <button type="button" class="btn btn-ghost" id="btn-ai-save-settings">설정 저장</button>
+                <button type="button" class="btn btn-ghost" id="btn-ai-clear-key">키 삭제</button>
+              </div>
+              <p class="muted tiny">키는 localStorage에만 저장되며 서버로 전송되지 않습니다. 공용 기기에서는 사용 후 키를 삭제하세요.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <h2>카드 추가</h2>
+          <form id="bmc-form" class="form">
+            <label for="section-select">영역</label>
+            <select id="section-select" required>
+              <option value="kp">KP · 핵심 파트너</option>
+              <option value="ka">KA · 핵심 활동</option>
+              <option value="kr">KR · 핵심 자원</option>
+              <option value="vp">VP · 가치 제안</option>
+              <option value="cr">CR · 고객 관계</option>
+              <option value="ch">CH · 채널</option>
+              <option value="cs">CS · 고객 세그먼트</option>
+              <option value="cost">$C · 비용 구조</option>
+              <option value="rs">$R · 수익 흐름</option>
+            </select>
+
+            <label for="card-text">내용</label>
+            <textarea
+              id="card-text"
+              rows="3"
+              maxlength="200"
+              placeholder="예: 원어민 강사 에이전시"
+              required
+            ></textarea>
+            <div class="hint-row">
+              <span id="char-count">0/200</span>
+              <span>Enter로 추가 · Shift+Enter 줄바꿈</span>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">카드 추가하기</button>
+          </form>
+        </section>
+
+        <section class="panel-block">
+          <h2>빠른 예시 채우기</h2>
+          <p class="muted">AI 없이 영어학원 샘플로 미리 봅니다.</p>
+          <button type="button" class="btn btn-secondary btn-block" id="btn-sample">샘플 데이터 넣기</button>
+        </section>
+
+        <section class="panel-block tips">
+          <h2>작성 팁</h2>
+          <ul>
+            <li>카드를 드래그해 다른 영역으로 옮길 수 있습니다.</li>
+            <li>카드 더블클릭으로 내용을 수정합니다.</li>
+            <li>작성 내용은 자동으로 브라우저에 저장됩니다.</li>
+            <li>PNG 저장 시 헤더/패널은 제외되고 캔버스만 캡처됩니다.</li>
+          </ul>
+        </section>
+
+        <div class="status" id="status" aria-live="polite">준비됨</div>
+      </aside>
+
+      <main class="canvas-wrap">
+        <div class="canvas-toolbar">
+          <span class="canvas-title" id="canvas-title">우리 학원 비즈니스 모델</span>
+          <button type="button" class="btn btn-tiny" id="btn-rename" title="캔버스 이름 변경">이름 변경</button>
+        </div>
+
+        <!-- Strategyzer-style contiguous table grid -->
+        <div class="bmc-frame" id="bmc-frame">
+          <div class="bmc" id="bmc-canvas" aria-label="비즈니스 모델 캔버스">
+            <section class="cell kp" data-section="kp">
+              <header class="cell-head">
+                <span class="code">KP</span>
+                <span class="name">핵심 파트너</span>
+              </header>
+              <div class="cards" data-dropzone="kp"></div>
+            </section>
+
+            <div class="stack ka-kr">
+              <section class="cell ka" data-section="ka">
+                <header class="cell-head">
+                  <span class="code">KA</span>
+                  <span class="name">핵심 활동</span>
+                </header>
+                <div class="cards" data-dropzone="ka"></div>
+              </section>
+              <section class="cell kr" data-section="kr">
+                <header class="cell-head">
+                  <span class="code">KR</span>
+                  <span class="name">핵심 자원</span>
+                </header>
+                <div class="cards" data-dropzone="kr"></div>
+              </section>
+            </div>
+
+            <section class="cell vp" data-section="vp">
+              <header class="cell-head">
+                <span class="code">VP</span>
+                <span class="name">가치 제안</span>
+              </header>
+              <div class="cards" data-dropzone="vp"></div>
+            </section>
+
+            <div class="stack cr-ch">
+              <section class="cell cr" data-section="cr">
+                <header class="cell-head">
+                  <span class="code">CR</span>
+                  <span class="name">고객 관계</span>
+                </header>
+                <div class="cards" data-dropzone="cr"></div>
+              </section>
+              <section class="cell ch" data-section="ch">
+                <header class="cell-head">
+                  <span class="code">CH</span>
+                  <span class="name">채널</span>
+                </header>
+                <div class="cards" data-dropzone="ch"></div>
+              </section>
+            </div>
+
+            <section class="cell cs" data-section="cs">
+              <header class="cell-head">
+                <span class="code">CS</span>
+                <span class="name">고객 세그먼트</span>
+              </header>
+              <div class="cards" data-dropzone="cs"></div>
+            </section>
+
+            <section class="cell cost" data-section="cost">
+              <header class="cell-head">
+                <span class="code">CS</span>
+                <span class="name">비용 구조</span>
+              </header>
+              <div class="cards horizontal" data-dropzone="cost"></div>
+            </section>
+
+            <section class="cell rs" data-section="rs">
+              <header class="cell-head">
+                <span class="code">RS</span>
+                <span class="name">수익 흐름</span>
+              </header>
+              <div class="cards horizontal" data-dropzone="rs"></div>
+            </section>
+          </div>
+          <footer class="bmc-credit">
+            <span class="bmc-credit-left">The Business Model Canvas · © Strategyzer (strategyzer.com)</span>
+            <span class="bmc-credit-right" id="bmc-credit-note">영어학원 원장용</span>
+          </footer>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
